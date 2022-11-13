@@ -1,0 +1,107 @@
+---
+title: "Topic Modeling"
+output: html_document
+date: "2022-11-13"
+author: "Qihan Su"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(topicmodels)
+library(tidytext)
+library(tidyverse)
+library(tidytext)
+library(ggplot2)
+library(ggthemes)
+library(GGally)
+library(scales)
+library(dplyr)
+library(corrplot)
+library(PerformanceAnalytics)
+library(knitr)
+library(stringr)
+library(stringi)
+library(tm)
+library(pacman)
+```
+
+```{r}
+IMDB<- read.csv( "/Users/suqihan/Desktop/IMDB Dataset.csv")
+IMDB_df <- tibble(data)
+glimpse(IMDB_df)
+head(IMDB_df)
+IMDB_df %>% 
+  mutate(review_number = row_number()) ->IMDB_df 
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+data(IMDB_df,package = "topicmodels")
+
+```
+
+
+
+
+```{r}
+IMDB_lda <- LDA(IMDB_df, k = 2, control = list(seed = 1234))
+IMDB_lda
+```
+
+
+
+
+```{r}
+library(topicmodels)
+IMDB_dtm <- tidy_IMDB %>%
+  count(review_number, word) %>% 
+  cast_dtm(review_number, word, n)
+
+IMDB_dtm
+```
+
+
+
+```{r}
+# set a seed so that the output of the model is predictable
+IMDB_lda <- LDA(IMDB, k = 2, control = list(seed = 1234))
+IMDB_lda
+
+```
+
+```{r}
+topics <- library(tidytext)
+
+topics <- tidy(IMDB_lda, matrix = "beta")
+topics
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+top_terms <- topics %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 10) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered()
+```
+
+
+
