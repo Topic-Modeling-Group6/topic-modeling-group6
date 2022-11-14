@@ -48,7 +48,7 @@ IMDB_df <- IMDB_df %>% select(-sentiment)
 IMDB <- IMDB  %>%  mutate(docs = c(1:length(IMDB$review)))
 
 data(stop_words)
-stop_words <- rbind(stop_words,c("br","Smart"))
+stop_words <- rbind(stop_words,c("br","Smart","crazy"))
 ```
 
 
