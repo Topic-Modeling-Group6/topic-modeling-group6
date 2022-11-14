@@ -28,6 +28,9 @@ library(tm)
 # library(pacman)
 library(tidyr)
 library(tokenizers)
+library(widyr)
+library(igraph)
+library(ggraph)
 ```
 
 
@@ -154,6 +157,63 @@ tidy(IMDB_dtm) %>%
 ```
 ##From the ten 'gamma chart' above, we knew that the documents 9 differs the most, and it seems that document 2,3,5,7,8 are the most common documents so we select document 3 to comapre with 9. As we can see, the doucment 9 was talking about a nasty girl called Keitel, and document 3 was about comedy. 
 
+##Classification in topic
+```{r}
+chapter_classifications <- ap_documents %>%
+  group_by(topic) %>%
+  slice_max(gamma) %>%
+  ungroup()
+
+chapter_classifications
+```
+
+##Analize word and document frequncy :tf-idf
+```{r}
+book_words <- IMDB %>%
+  unnest_tokens(word, review) %>%
+  anti_join(stop_words)%>%
+  count(docs, word, sort = TRUE)
+
+total_words <- book_words %>% 
+  group_by(docs) %>% 
+  summarize(total = sum(n))
+
+book_words <- left_join(book_words, total_words)
+
+freq_by_rank <- book_words %>% 
+  group_by(docs) %>% 
+  mutate(rank = row_number(), 
+         `term frequency` = n/total) %>%
+  ungroup()
+
+book_tf_idf <- book_words %>%
+  bind_tf_idf(word, docs, n)
+
+ap_lda <- LDA(book_tf_idf, k = 2, control = list(seed = 1234))
+```
+
+
+```{r}
+
+word_pairs <- book_words %>% 
+  pairwise_count(word,docs, sort = TRUE, upper = FALSE)
+```
+
+```{r}
+
+set.seed(1234)
+word_pairs %>%
+  filter(n >= 4000) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "cyan4") +
+  geom_node_point(size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void()
+```
+
+
 
 ##tokenizing by bigram
 ```{r}
@@ -183,57 +243,19 @@ freq_by_rank_bi %>%
   scale_y_log10()
 ```
 
-##tf-idf
-```{r}
-review_tf_idf_bi <- review_bigram %>%
-  bind_tf_idf(bigram, review, n)
-
-#look at terms with high tf-idf in reviews.
-review_tf_idf_bi %>%
-  select(-total) %>%
-  arrange(desc(tf_idf))
-
-#too many 'br br' -> let's remove 'br br'
-review_separated <- review_bigram %>%  
-  separate(bigram, into = c("word1", "word2"), sep = " ")
-
-review_united <- review_separated %>%
-  filter(!word1 %in% c('br'),
-         !word2 %in% c('br')) %>%
-  unite(bigram, c(word1, word2), sep = " ")
-
-#resume tf-idf
-review_tf_idf_bi2 <- review_united %>%
-  bind_tf_idf(bigram, review, n)
-
-review_tf_idf_bi2 
-
-#look at terms with high tf-idf in reviews.
-review_tf_idf_bi2 %>%
-  select(-total) %>%
-  arrange(desc(tf_idf))
-```
-
-```{r}
-review_tf_idf_bi2 %>%
-  group_by(review) %>%
-  slice_max(tf_idf, n = 15) %>%
-  ungroup() %>%
-  ggplot(aes(tf_idf, fct_reorder(bigram, tf_idf), fill = book)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~review, ncol = 2, scales = "free") +
-  labs(x = "tf-idf", y = NULL)
 
 
-words_tf_idf <- review_united %>%
-  review_tf_idf_bi2
-  group_by(review) %>% 
-  top_n(10) %>%
-  ungroup() %>% 
-  facet_bar(y = bigram, x = tf_idf, by = review, ncol = 3) + 
-  labs(title = "Top 10 words picked tf-idf")
 
-```
+
+
+
+
+
+
+
+
+
+
 
 
 
