@@ -40,7 +40,7 @@ library(ggraph)
 ```
 
 ```{r}
-IMDB <- read.csv("IMDB Dataset.csv")
+IMDB <- read.csv("/Users/suqihan/Desktop/IMDB Dataset.csv")
 IMDB_df <- tibble(IMDB)
 glimpse(IMDB_df)
 head(IMDB_df)
@@ -52,6 +52,7 @@ IMDB_df <- IMDB_df %>% select(-sentiment)
 ##Analize word and document frequncy :tf-idf
 
 ```{r}
+IMDB <- IMDB  %>%  mutate(docs = c(1:length(IMDB$review)))
 book_words <- IMDB %>%
   unnest_tokens(word, review) %>%
   anti_join(stop_words)%>%
