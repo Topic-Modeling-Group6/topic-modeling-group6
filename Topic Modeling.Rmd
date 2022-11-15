@@ -9,6 +9,12 @@ author: "Qihan Su"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## **Introduction:**
+
+Topic modeling is a method to find topics which are operationalized as bundles of correlating terms in documents to see what the texts are about. IMDB Dataset is chosen for  analysis. The dataset includes 50K movie reviews for natural language processing or text analytics. The topic modeling includes data cleaning procedures with utilization of tf-idf, and LDA to find out mixture of words in different topics or documents. Then terms within each topic are extracted and plotted to help understand the representation of these topics.
+
+## **Preparation:**
+
 ```{r}
 library(topicmodels)
 library(tidytext)
@@ -33,12 +39,8 @@ library(igraph)
 library(ggraph)
 ```
 
-
-
-
-
 ```{r}
-IMDB<- read.csv( "/Users/suqihan/Desktop/IMDB Dataset.csv")
+IMDB <- read.csv("IMDB Dataset.csv")
 IMDB_df <- tibble(IMDB)
 glimpse(IMDB_df)
 head(IMDB_df)
@@ -48,6 +50,7 @@ IMDB_df <- IMDB_df %>% select(-sentiment)
 ```
 
 ##Analize word and document frequncy :tf-idf
+
 ```{r}
 book_words <- IMDB %>%
   unnest_tokens(word, review) %>%
@@ -72,8 +75,8 @@ book_tf_idf <- book_words %>%
 
 ```
 
-
 ##According to the tf-idf, select stop words
+
 ```{r}
 IMDB <- IMDB  %>%  mutate(docs = c(1:length(IMDB$review)))
 
@@ -82,9 +85,8 @@ stop_words <- rbind(stop_words,c("br","SMART"))%>%rbind(c("movie","Smart"))%>%rb
 rbind(c("series","SMART"))%>%rbind(c("season","SMART"))%>%rbind(c("version","SMART"))%>%rbind(c("5","SMART"))%>%rbind(c("10","SMART"))%>%rbind(c("1","SMART"))%>%rbind(c("character","SMART"))%>%rbind(c("characters","SMART"))%>%rbind(c("scenes","SMART"))%>%rbind(c("scene","SMART"))%>%rbind(c("story","SMART"))%>%rbind(c("films","SMART"))%>%rbind(c("director","SMART"))%>%rbind(c("time","SMART"))
 ```
 
+### LDA
 
-
-###  LDA
 ```{r}
 
 IMDB_dtm <- IMDB %>%
@@ -113,22 +115,20 @@ ap_top_terms %>%
   facet_wrap(~ topic, scales = "free") +
   scale_y_reordered()
 ```
+
 ##As we can see from the gragh, ten themes can be extracted from the text.
-
-
 
 ```{r}
 beta_wide_new <- head(beta_wide,10)
 ggplot(data = beta_wide_new, aes(x = log_ratio, fill = term) ) + geom_histogram()
 ```
+
 ```{r}
 
 ```
 
-
-
-
 ##Document classification
+
 ```{r}
 ap_documents <- tidy(ap_lda, matrix = "gamma")
 # ap_documents
@@ -136,7 +136,6 @@ ap_documents <- ap_documents %>%
   separate(document, c("title"),sep = "_", convert = TRUE)
 ap_documents
 ```
-
 
 ```{r}
 ggplot(ap_documents, aes(x = gamma , fill = as.factor(topic))) + geom_histogram()+
@@ -147,8 +146,8 @@ ggplot(ap_documents, aes(x = gamma , fill = as.factor(topic))) + geom_histogram(
        x= "gamma"
        )
 ```
-##It can be seen that the topics of many documents are mixed and extracted from the two topics since they are all approximately to 50%
-##From the ten chart above, we can see that the document 9 differs the most from other documents. In order to check this, we tidy the document 9 and to see the most common words in it. 
+
+##It can be seen that the topics of many documents are mixed and extracted from the two topics since they are all approximately to 50% ##From the ten chart above, we can see that the document 9 differs the most from other documents. In order to check this, we tidy the document 9 and to see the most common words in it.
 
 ```{r}
 ggplot(ap_documents, aes(factor(topic),gamma ))+ geom_boxplot()+
@@ -158,17 +157,16 @@ ggplot(ap_documents, aes(factor(topic),gamma ))+ geom_boxplot()+
        )
 ```
 
-
-
 ##Tidy document 9
+
 ```{r}
 tidy(IMDB_dtm) %>%
   filter(document == 9) %>%
   arrange(desc(count))
 ```
 
-
 ## word topic probability
+
 ```{r}
 beta_wide <- ap_topics %>%
   mutate(topic = paste0("topic", topic)) %>%
@@ -177,8 +175,6 @@ beta_wide <- ap_topics %>%
   mutate(log_ratio = log2(topic9 / topic3))
 beta_wide
 ```
-
-
 
 ##Comparing two topics' top ten frequncy words between topic 9 and 3
 
@@ -193,10 +189,10 @@ geom_col() +
 labs(x = "Log2 ratio of beta in topic 9 / topic 3", y = NULL)
 ```
 
-
-##From the ten 'gamma chart' above, we knew that the documents 9 differs the most, and it seems that document 2,3,5,7,8 are the most common documents so we select document 3 to comapre with 9. As we can see, the doucment 9 was talking about a nasty girl called Keitel, and document 3 was about comedy. 
+##From the ten 'gamma chart' above, we knew that the documents 9 differs the most, and it seems that document 2,3,5,7,8 are the most common documents so we select document 3 to comapre with 9. As we can see, the doucment 9 was talking about a nasty girl called Keitel, and document 3 was about comedy.
 
 ##Classification in topic
+
 ```{r}
 chapter_classifications <- ap_documents %>%
   group_by(topic) %>%
@@ -207,6 +203,7 @@ chapter_classifications
 ```
 
 ##Correlation
+
 ```{r}
 
 word_pairs <- book_words %>% 
@@ -227,39 +224,6 @@ word_pairs %>%
   theme_void()
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -277,6 +241,3 @@ top_terms %>%
   facet_wrap(~ topic, scales = "free") +
   scale_y_reordered()
 ```
-
-
-
