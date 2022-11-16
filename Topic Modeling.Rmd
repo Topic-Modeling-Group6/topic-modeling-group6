@@ -2,7 +2,7 @@
 title: "Topic Modeling"
 output: html_document
 date: "2022-11-13"
-author: "Qihan Su"
+author: "Qihan Su,Ziyang Lin, Runze Pang, Lanlin Zhao"
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## **Introduction:**
 
-Topic modeling is a method to find topics which are operationalized as bundles of correlating terms in documents to see what the texts are about. IMDB Dataset is chosen for  analysis. The dataset includes 50K movie reviews for natural language processing or text analytics. The topic modeling includes data cleaning procedures with utilization of tf-idf, and LDA to find out mixture of words in different topics or documents. Then terms within each topic are extracted and plotted to help understand the representation of these topics.
+Topic modeling is a method to find topics which are operationalized as bundles of correlating terms in documents to see what the texts are about. IMDB Dataset is chosen foranalysis. The dataset includes 50K movie reviews for natural language processing or text analytics. The topic modeling includes data cleaning procedures with utilization of tf-idf, and LDA to find out mixture of words in different topics or documents. Then terms within each topic are extracted and plotted to help understand the representation of these topics.
 
 ## **Preparation:**
 
@@ -40,7 +40,7 @@ library(ggraph)
 ```
 
 ```{r}
-IMDB <- read.csv("/Users/suqihan/Desktop/IMDB Dataset.csv")
+IMDB <- read.csv("IMDB Dataset.csv")
 IMDB_df <- tibble(IMDB)
 glimpse(IMDB_df)
 head(IMDB_df)
@@ -115,6 +115,7 @@ ap_top_terms %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales = "free") +
   scale_y_reordered()
+#1
 ```
 
 ##As we can see from the gragh, ten themes can be extracted from the text.
