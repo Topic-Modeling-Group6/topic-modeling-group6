@@ -11,8 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## **Introduction:**
 
-Topic modeling is a method to find topics which are operationalized as bundles of correlating terms in documents to see what the texts are about. IMDB Dataset is chosen foranalysis. The dataset includes 50K movie reviews for natural language processing or text analytics. The topic modeling includes data cleaning procedures with utilization of tf-idf, and LDA to find out mixture of words in different topics or documents. Then terms within each topic are extracted and plotted to help understand the representation of these topics.
-
+Topic modeling is a method to find topics which are operationalized as bundles of correlating terms in documents to see what the texts are about. In this project, IMDB Dataset is the target for our analysis. This dataset includes 50K movie reviews for natural language processing or text analytics. The topic modeling includes data cleaning procedures with utilization of tf-idf and LDA to find mixtures of words in different topics, contexts or documents. After that, terms within each topic are extracted and plotted to help understand the representation of these topics. 
 ## **Preparation:**
 
 ```{r}
@@ -29,7 +28,6 @@ library(knitr)
 library(stringr)
 library(stringi)
 library(tm)
-# library(pacman)
 library(tidyr)
 library(tokenizers)
 library(widyr)
@@ -38,12 +36,14 @@ library(ggraph)
 ```
 
 ```{r}
-IMDB <- read.csv("IMDB Dataset.csv")
+IMDB <- read.csv("D:/Rresources/IMDB Dataset.csv")
 IMDB_df <- tibble(IMDB)
 glimpse(IMDB_df)
 head(IMDB_df)
+#Assign an id to each review
 IMDB_df %>% 
   mutate(review_number = row_number()) ->IMDB_df 
+#Focus on review
 IMDB_df <- IMDB_df %>% select(-sentiment)
 ```
 
@@ -74,19 +74,31 @@ book_tf_idf <- book_words %>%
 
 ```
 
-##According to the tf-idf, select stop words
+##According to the tf-idf, select extra stop words
 
 ```{r}
-IMDB <- IMDB  %>%  mutate(docs = c(1:length(IMDB$review)))
+#check the range of tf-idf of all words(default stop words already excluded)
+range(book_tf_idf$tf_idf)
+#The tf-idf value can help us exclude the words that have high frequency but too common in overall movie reviews
+#We find the range of tf-idf is between 0.0005477301 and 5.5159653999. Thus, exclude those words with tf-idf less than 0.003 can be reasonable (fot the ti-idf is log based). 
+my_stopwords<-tibble(word = levels(as.factor(book_tf_idf$word[book_tf_idf$tf_idf < 0.003])))
+my_stopwords$lexicon<-"SMART"
+my_stopwords<-rbind(stop_words,my_stopwords)
 
-data(stop_words)
-stop_words <- rbind(stop_words,c("br","SMART"))%>%rbind(c("movie","Smart"))%>%rbind(c("film","SMART"))%>%rbind(c("match","SMART"))%>%rbind(c("stop.oz","SMART"))%>%rbind(c("time","SMART"))%>%rbind(c("episode","SMART"))%>%
-rbind(c("series","SMART"))%>%rbind(c("season","SMART"))%>%rbind(c("version","SMART"))%>%rbind(c("5","SMART"))%>%rbind(c("10","SMART"))%>%rbind(c("1","SMART"))%>%rbind(c("character","SMART"))%>%rbind(c("characters","SMART"))%>%rbind(c("scenes","SMART"))%>%rbind(c("scene","SMART"))%>%rbind(c("story","SMART"))%>%rbind(c("films","SMART"))%>%rbind(c("director","SMART"))%>%rbind(c("time","SMART"))
+#We add 88 extra words
+
+
+
+#Add other words that we consider meaningless to the stop words. 
+
+my_stopwords <- rbind(my_stopwords,c("tells","SMART"))%>%rbind(c("type","Smart"))%>%rbind(c("film","SMART"))%>%rbind(c("match","SMART"))%>%rbind(c("stop.oz","SMART"))%>%rbind(c("style","SMART"))%>%rbind(c("episode","SMART"))%>%
+rbind(c("series","SMART"))%>%rbind(c("season","SMART"))%>%rbind(c("version","SMART"))%>%rbind(c("5","SMART"))%>%rbind(c("10","SMART"))%>%rbind(c("1","SMART"))%>%rbind(c("character","SMART"))%>%rbind(c("characters","SMART"))%>%rbind(c("scenes","SMART"))%>%rbind(c("scene","SMART"))%>%rbind(c("story","SMART"))%>%rbind(c("films","SMART"))%>%rbind(c("director","SMART"))%>%rbind(c("time","SMART"))%>%rbind(c("film's","SMART"))%>%rbind(c("watching","SMART"))%>%rbind(c("feel","SMART"))%>%rbind(c("role","SMART"))
 ```
 
 ### LDA
 
 ```{r}
+#Exclued the extra stop words and get a DocumentTermMatrix of IMDB
 
 IMDB_dtm <- IMDB %>%
   unnest_tokens(word, review) %>%
@@ -96,6 +108,7 @@ IMDB_dtm <- IMDB %>%
 ```
 
 ```{r}
+#Set k = 10 try to divide these reviews into 10 topics and specify a seed for reproducibility
 ap_lda <- LDA(IMDB_dtm, k = 10, control = list(seed = 1234))
 
 ap_topics <- tidy(ap_lda, matrix = "beta")
@@ -113,21 +126,18 @@ ap_top_terms %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales = "free") +
   scale_y_reordered()
-#1
 ```
 
-##As we can see from the gragh, ten themes can be extracted from the text.
+##As we can see from the gragh, ten themes can be extracted from the text. Here we take some topics as example:
 
-```{r}
-beta_wide_new <- head(beta_wide,10)
-ggplot(data = beta_wide_new, aes(x = log_ratio, fill = term) ) + geom_histogram()
-```
+### For topic 1, the most common words include "dead","horror","war",and "hope". This topic could represent a series of war movies.
 
-```{r}
+### For topic 2, the most common words include "life","comedy", and "family". This topic could represent some some family comedies.
 
-```
 
 ##Document classification
+
+### Next, we try to find out whether our model fits good.
 
 ```{r}
 ap_documents <- tidy(ap_lda, matrix = "gamma")
@@ -135,6 +145,12 @@ ap_documents <- tidy(ap_lda, matrix = "gamma")
 ap_documents <- ap_documents %>%
   separate(document, c("title"),sep = "_", convert = TRUE)
 ap_documents
+
+ggplot(ap_documents, aes(gamma)) +
+  geom_histogram(alpha = 0.8) +
+  scale_y_log10() +
+  labs(title = "Distribution of probabilities for all topics",
+       y = "Number of documents", x = expression(gamma))
 ```
 
 ```{r}
@@ -147,7 +163,9 @@ ggplot(ap_documents, aes(x = gamma , fill = as.factor(topic))) + geom_histogram(
        )
 ```
 
-##It can be seen that the topics of many documents are mixed and extracted from the two topics since they are all approximately to 50% ##From the ten chart above, we can see that the document 9 differs the most from other documents. In order to check this, we tidy the document 9 and to see the most common words in it.
+##It can be seen that the overall distribution and distribitions for each topic are right skewed. These graphs show a vague result of topic distribution. The probabilities are centered at about 0.1 which means we have a little confifence to assign a movie to a certain topic.
+
+##From the ten chart above, howerer, we can still see that the document 3 differs the most from other documents. In order to check this, we tidy the document 3 and to see the most common words in it.
 
 ```{r}
 ggplot(ap_documents, aes(factor(topic),gamma ))+ geom_boxplot()+
@@ -157,11 +175,11 @@ ggplot(ap_documents, aes(factor(topic),gamma ))+ geom_boxplot()+
        )
 ```
 
-##Tidy document 9
+##Tidy document 3
 
 ```{r}
 tidy(IMDB_dtm) %>%
-  filter(document == 9) %>%
+  filter(document == 3) %>%
   arrange(desc(count))
 ```
 
@@ -171,12 +189,12 @@ tidy(IMDB_dtm) %>%
 beta_wide <- ap_topics %>%
   mutate(topic = paste0("topic", topic)) %>%
   pivot_wider(names_from = topic, values_from = beta) %>% 
-  filter(topic9 > .001 | topic3 > .001) %>%
-  mutate(log_ratio = log2(topic9 / topic3))
+  filter(topic3 > .001 | topic4 > .001) %>%
+  mutate(log_ratio = log2(topic3 / topic4))
 beta_wide
 ```
 
-##Comparing two topics' top ten frequncy words between topic 9 and 3
+##Comparing two topics' top ten frequncy words between topic 3 and 4
 
 ```{r}
 beta_wide %>% 
@@ -186,12 +204,14 @@ ungroup() %>%
 mutate(term = reorder(term, log_ratio)) %>% 
 ggplot(aes(log_ratio, term)) + 
 geom_col() + 
-labs(x = "Log2 ratio of beta in topic 9 / topic 3", y = NULL)
+labs(x = "Log2 ratio of beta in topic 3 / topic 4", y = NULL)
 ```
 
-##From the ten 'gamma chart' above, we knew that the documents 9 differs the most, and it seems that document 2,3,5,7,8 are the most common documents so we select document 3 to comapre with 9. As we can see, the doucment 9 was talking about a nasty girl called Keitel, and document 3 was about comedy.
+##From the ten 'gamma chart' above, we knew that the documents 3 differs the most, and it seems that document 2,4,5,9,10 are the most common documents so we select document 4 to comapre with 3. As we can see, the topic 3 was talking some crime movies, while topic 4 was about comedy.
 
 ##Classification in topic
+
+### Next, we check the the reviews which have the highest gamma in each topic
 
 ```{r}
 chapter_classifications <- ap_documents %>%
@@ -202,11 +222,26 @@ chapter_classifications <- ap_documents %>%
 chapter_classifications
 ```
 
-##Correlation
+### The 28690th review got a gamma of 0.234 in topic 1, as we expected, it should be a review about some horror or war movies. 
+
+### The original text of the book review is:
+
+#### These guys are excellent and anything they put out to the public is first class. The musicianship of this band is amazing... Future generations will never be able to see such mastery live and in person. Get this DVD and you will enjoy it throughly!! ...
+
+### This review definitely comes for a music related movie. This is an incorrect estimate of the model.
+
+
+
+##Co-occurence network
 
 ```{r}
 
-word_pairs <- book_words %>% 
+IMDB_words <- IMDB %>%
+  unnest_tokens(word, review) %>%
+  anti_join(my_stopwords)%>%
+  count(docs, word)
+
+word_pairs <- IMDB_words %>% 
   pairwise_count(word,docs, sort = TRUE, upper = FALSE)
 ```
 
@@ -214,7 +249,7 @@ word_pairs <- book_words %>%
 
 set.seed(1234)
 word_pairs %>%
-  filter(n >= 2000) %>%
+  filter(n >= 800) %>%
   graph_from_data_frame() %>%
   ggraph(layout = "fr") +
   geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "cyan4") +
@@ -224,20 +259,11 @@ word_pairs %>%
   theme_void()
 ```
 
-```{r}
-library(ggplot2)
-library(dplyr)
 
-top_terms <- topics %>%
-  group_by(topic) %>%
-  slice_max(beta, n = 10) %>% 
-  ungroup() %>%
-  arrange(topic, -beta)
+## We see clustering from above figure. It shows strong connections between the bottom right words. They are all connected to "life". And there are also 4 small clusters like "white","black" and "book", "read".
 
-top_terms %>%
-  mutate(term = reorder_within(term, beta, topic)) %>%
-  ggplot(aes(beta, term, fill = factor(topic))) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~ topic, scales = "free") +
-  scale_y_reordered()
-```
+
+# **Conclusion:**
+
+## In this project, We assumed that the topic of this dataset is separated by the type of the movie. To test our hypothesis, we were trying to make 10 topics.we found that the topics are vaguely generalized. We also tried other number of topics(from 2 to 15), the result is still not ideal. The gamma distribution even approachs to normal distribution when k = 2. The test results cannot support our hypothesis that the movie reviews are separated by movie type. There may be many reasons for this. For example, people's reviews of movies can be very subjective. When expressing people their views, they are likely to use a large number of non-movie related words to express their feelings which is likely to make the model to give a dubious result.
+
